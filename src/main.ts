@@ -21,13 +21,18 @@ import {McpContext} from './McpContext.js';
 import {McpResponse} from './McpResponse.js';
 import {Mutex} from './Mutex.js';
 import * as consoleTools from './tools/console.js';
+import * as determinismTools from './tools/determinism.js';
 import * as emulationTools from './tools/emulation.js';
+import * as governanceTools from './tools/governance.js';
 import * as inputTools from './tools/input.js';
+import * as networkReplayTools from './tools/network-replay.js';
 import * as networkTools from './tools/network.js';
+import * as overlayTools from './tools/overlay.js';
 import * as pagesTools from './tools/pages.js';
-import * as performanceTools from './tools/performance.js';
+// import * as performanceTools from './tools/performance.js'; // Disabled temporarily
 import * as screenshotTools from './tools/screenshot.js';
 import * as scriptTools from './tools/script.js';
+import * as semanticTools from './tools/semantic.js';
 import * as snapshotTools from './tools/snapshot.js';
 import type {ToolDefinition} from './tools/ToolDefinition.js';
 
@@ -141,13 +146,18 @@ function registerTool(tool: ToolDefinition): void {
 
 const tools = [
   ...Object.values(consoleTools),
+  ...Object.values(determinismTools),
   ...Object.values(emulationTools),
+  ...Object.values(governanceTools),
   ...Object.values(inputTools),
+  ...Object.values(networkReplayTools),
   ...Object.values(networkTools),
+  ...Object.values(overlayTools),
   ...Object.values(pagesTools),
-  ...Object.values(performanceTools),
+  // ...Object.values(performanceTools), // Disabled temporarily
   ...Object.values(screenshotTools),
   ...Object.values(scriptTools),
+  ...Object.values(semanticTools),
   ...Object.values(snapshotTools),
 ];
 for (const tool of tools) {

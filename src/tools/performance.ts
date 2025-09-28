@@ -8,12 +8,12 @@ import type {Page} from 'puppeteer-core';
 import z from 'zod';
 
 import {logger} from '../logger.js';
-import type {InsightName} from '../trace-processing/parse.js';
 import {
   getInsightOutput,
   getTraceSummary,
   parseRawTraceBuffer,
   traceResultIsSuccess,
+  type InsightName,
 } from '../trace-processing/parse.js';
 
 import {ToolCategories} from './categories.js';

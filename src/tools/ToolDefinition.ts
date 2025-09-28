@@ -7,7 +7,9 @@
 import type {Dialog, ElementHandle, Page} from 'puppeteer-core';
 import type z from 'zod';
 
-import type {TraceResult} from '../trace-processing/parse.js';
+import type {TraceResult as TraceParseResult} from '../trace-processing/parse.js';
+
+export type TraceResult = TraceParseResult;
 
 import type {ToolCategories} from './categories.js';
 
@@ -75,6 +77,10 @@ export type Context = Readonly<{
     mimeType: 'image/png' | 'image/jpeg',
   ): Promise<{filename: string}>;
   waitForEventsAfterAction(action: () => Promise<unknown>): Promise<void>;
+  // Additional methods for Cortex extension
+  getNetworkRequests(): any[];
+  getConsoleData(): any[];
+  getTextSnapshot(): any;
 }>;
 
 export function defineTool<Schema extends z.ZodRawShape>(

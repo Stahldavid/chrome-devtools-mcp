@@ -4,68 +4,72 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {PerformanceInsightFormatter} from '../../node_modules/chrome-devtools-frontend/front_end/models/ai_assistance/data_formatters/PerformanceInsightFormatter.js';
-import {PerformanceTraceFormatter} from '../../node_modules/chrome-devtools-frontend/front_end/models/ai_assistance/data_formatters/PerformanceTraceFormatter.js';
-import {AgentFocus} from '../../node_modules/chrome-devtools-frontend/front_end/models/ai_assistance/performance/AIContext.js';
-import * as TraceEngine from '../../node_modules/chrome-devtools-frontend/front_end/models/trace/trace.js';
+import {PerformanceInsightFormatter} from 'chrome-devtools-frontend/front_end/models/ai_assistance/data_formatters/PerformanceInsightFormatter.js';
+import {PerformanceTraceFormatter} from 'chrome-devtools-frontend/front_end/models/ai_assistance/data_formatters/PerformanceTraceFormatter.js';
+import {AgentFocus} from 'chrome-devtools-frontend/front_end/models/ai_assistance/performance/AIContext.js';
+import * as TraceEngine from 'chrome-devtools-frontend/front_end/models/trace/trace.js';
+
 import {logger} from '../logger.js';
 
-const engine = TraceEngine.TraceModel.Model.createWithAllHandlers();
+export type InsightName = string;
 
-export interface TraceResult {
-  parsedTrace: TraceEngine.TraceModel.ParsedTrace;
-  insights: TraceEngine.Insights.Types.TraceInsightSets | null;
+export interface TraceSuccessResult {
+  parsedTrace: unknown;
+  insights: Map<unknown, {model?: Record<string, unknown>}> | null;
 }
+
+export interface TraceErrorResult {
+  error: string;
+}
+
+export type TraceParsingResult = TraceSuccessResult | TraceErrorResult;
+
+export type TraceResult = TraceSuccessResult;
+
+const traceModel = TraceEngine.TraceModel.Model.createWithAllHandlers();
 
 export function traceResultIsSuccess(
-  x: TraceResult | TraceParseError,
-): x is TraceResult {
-  return 'parsedTrace' in x;
-}
-
-export interface TraceParseError {
-  error: string;
+  result: TraceParsingResult,
+): result is TraceSuccessResult {
+  return 'parsedTrace' in result;
 }
 
 export async function parseRawTraceBuffer(
   buffer: Uint8Array<ArrayBufferLike> | undefined,
-): Promise<TraceResult | TraceParseError> {
-  engine.resetProcessor();
+): Promise<TraceParsingResult> {
+  traceModel.resetProcessor();
   if (!buffer) {
     return {
       error: 'No buffer was provided.',
     };
   }
+
   const asString = new TextDecoder().decode(buffer);
   if (!asString) {
     return {
       error: 'Decoding the trace buffer returned an empty string.',
     };
   }
-  try {
-    const data = JSON.parse(asString) as
-      | {
-          traceEvents: TraceEngine.Types.Events.Event[];
-        }
-      | TraceEngine.Types.Events.Event[];
 
-    const events = Array.isArray(data) ? data : data.traceEvents;
-    await engine.parse(events);
-    const parsedTrace = engine.parsedTrace();
+  try {
+    const parsedJson = JSON.parse(asString);
+    const events = Array.isArray(parsedJson) ? parsedJson : parsedJson.traceEvents;
+    await traceModel.parse(events);
+
+    const parsedTrace = traceModel.parsedTrace();
     if (!parsedTrace) {
       return {
         error: 'No parsed trace was returned from the trace engine.',
       };
     }
 
-    const insights = parsedTrace?.insights ?? null;
-
+    const insights = (parsedTrace as {insights?: TraceSuccessResult['insights']})?.insights ?? null;
     return {
       parsedTrace,
       insights,
-    };
-  } catch (e) {
-    const errorText = e instanceof Error ? e.message : JSON.stringify(e);
+    } satisfies TraceSuccessResult;
+  } catch (error) {
+    const errorText = error instanceof Error ? error.message : JSON.stringify(error);
     logger(`Unexpeced error parsing trace: ${errorText}`);
     return {
       error: errorText,
@@ -73,44 +77,39 @@ export async function parseRawTraceBuffer(
   }
 }
 
-const extraFormatDescriptions = `Information on performance traces may contain main thread activity represented as call frames and network requests.
+const extraFormatDescriptions = `Information on performance traces may contain main thread activity represented as call frames and network requests.\n\n${PerformanceTraceFormatter.callFrameDataFormatDescription}\n\n${PerformanceTraceFormatter.networkDataFormatDescription}\n`;
 
-${PerformanceTraceFormatter.callFrameDataFormatDescription}
-
-${PerformanceTraceFormatter.networkDataFormatDescription}
-`;
-export function getTraceSummary(result: TraceResult): string {
-  const focus = AgentFocus.fromParsedTrace(result.parsedTrace);
+export function getTraceSummary(result: TraceSuccessResult): string {
+  const focus = AgentFocus.fromParsedTrace(result.parsedTrace as any);
   const formatter = new PerformanceTraceFormatter(focus);
   const output = formatter.formatTraceSummary();
-  return `${extraFormatDescriptions}
-
-${output}`;
+  return `${extraFormatDescriptions}\n\n${output}`;
 }
 
-export type InsightName = keyof TraceEngine.Insights.Types.InsightModels;
-export type InsightOutput = {output: string} | {error: string};
-
 export function getInsightOutput(
-  result: TraceResult,
+  result: TraceSuccessResult,
   insightName: InsightName,
-): InsightOutput {
+): {output: string} | {error: string} {
   if (!result.insights) {
     return {
       error: 'No Performance insights are available for this trace.',
     };
   }
 
-  // Currently, we do not support inspecting traces with multiple navigations. We either:
-  // 1. Find Insights from the first navigation (common case: user records a trace with a page reload to test load performance)
-  // 2. Fall back to finding Insights not associated with a navigation (common case: user tests an interaction without a page load).
   const mainNavigationId =
-    result.parsedTrace.data.Meta.mainFrameNavigations.at(0)?.args.data
-      ?.navigationId;
+    (result.parsedTrace as {
+      data?: {
+        Meta?: {
+          mainFrameNavigations?: Array<{
+            args?: {data?: {navigationId?: string}};
+          }>;
+        };
+      };
+    })?.data?.Meta?.mainFrameNavigations?.at(0)?.args?.data?.navigationId;
 
   const insightsForNav = result.insights.get(
     mainNavigationId ?? TraceEngine.Types.Events.NO_NAVIGATION,
-  );
+  ) as {model?: Record<string, unknown>} | undefined;
 
   if (!insightsForNav) {
     return {
@@ -118,10 +117,7 @@ export function getInsightOutput(
     };
   }
 
-  const matchingInsight =
-    insightName in insightsForNav.model
-      ? insightsForNav.model[insightName]
-      : null;
+  const matchingInsight = insightsForNav.model?.[insightName] as unknown;
   if (!matchingInsight) {
     return {
       error: `No Insight with the name ${insightName} found. Double check the name you provided is accurate and try again.`,
@@ -129,8 +125,8 @@ export function getInsightOutput(
   }
 
   const formatter = new PerformanceInsightFormatter(
-    AgentFocus.fromParsedTrace(result.parsedTrace),
-    matchingInsight,
+    AgentFocus.fromParsedTrace(result.parsedTrace as any),
+    matchingInsight as any,
   );
   return {output: formatter.formatInsight()};
 }

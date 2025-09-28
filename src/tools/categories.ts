@@ -11,4 +11,8 @@ export enum ToolCategories {
   PERFORMANCE = 'Performance',
   NETWORK = 'Network',
   DEBUGGING = 'Debugging',
+  OVERLAY = 'Visual Overlay',
+  SEMANTIC = 'Semantic Analysis',
+  DETERMINISM = 'Deterministic Execution',
+  GOVERNANCE = 'Governance & Audit',
 }

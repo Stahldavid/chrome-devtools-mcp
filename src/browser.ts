@@ -38,10 +38,17 @@ function targetFilter(target: Target): boolean {
   return true;
 }
 
+const DEFAULT_PROTOCOL_TIMEOUT_MS = 30_000;
+const protocolTimeoutEnv = Number.parseInt(process.env['MCP_PROTOCOL_TIMEOUT_MS'] ?? '', 10);
+const resolvedProtocolTimeout =
+  Number.isFinite(protocolTimeoutEnv) && protocolTimeoutEnv > 0
+    ? protocolTimeoutEnv
+    : DEFAULT_PROTOCOL_TIMEOUT_MS;
+
 const connectOptions: ConnectOptions = {
   targetFilter,
-  // We do not expect any single CDP command to take more than 10sec.
-  protocolTimeout: 10_000,
+  // Provide ample time for CDP commands that may execute slowly and allow override via env.
+  protocolTimeout: resolvedProtocolTimeout,
 };
 
 async function ensureBrowserConnected(browserURL: string) {

@@ -54,6 +54,27 @@ export const cliOptions = {
     describe:
       'Path to a file to write debug logs to. Set the env variable `DEBUG` to `*` to enable verbose logs. Useful for submitting bug reports.',
   },
+  overlayEnabled: {
+    type: 'boolean' as const,
+    description: 'Enable visual overlay features (annotations, element picker)',
+    default: true,
+  },
+  determinismDefaults: {
+    type: 'boolean' as const,
+    description: 'Apply deterministic defaults (fixed viewport, user agent, timezone, locale)',
+    default: false,
+  },
+  bypassServiceWorkers: {
+    type: 'boolean' as const,
+    description: 'Bypass Service Workers by default for network recording',
+    default: true,
+  },
+  policyDefault: {
+    type: 'string' as const,
+    description: 'Default policy mode for write operations',
+    choices: ['allow_all', 'deny_write', 'strict'] as const,
+    default: 'deny_write',
+  },
 };
 
 export function parseArguments(version: string, argv = process.argv) {
