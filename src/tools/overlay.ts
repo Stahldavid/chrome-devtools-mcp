@@ -179,13 +179,20 @@ export const overlayAnnotate = defineTool({
             document.documentElement.appendChild(root);
           }
 
+          const viewportWidth = bounds.width;
+          const viewportHeight = bounds.height;
+          const documentX = bounds.x + window.scrollX;
+          const documentYBase = bounds.y + window.scrollY;
+          const underlineHeight = Math.max(strokePx, 2);
+          const documentY =
+            shape === 'underline' ? documentYBase + viewportHeight : documentYBase;
+          const overlayHeight = shape === 'underline' ? underlineHeight : viewportHeight;
+
           const overlay = document.createElement('div');
           overlay.dataset.annotationId = annotationId;
           overlay.style.position = 'fixed';
-          overlay.style.left = `${bounds.x}px`;
-          overlay.style.top = `${bounds.y}px`;
-          overlay.style.width = `${bounds.width}px`;
-          overlay.style.height = `${bounds.height}px`;
+          overlay.style.width = `${viewportWidth}px`;
+          overlay.style.height = `${overlayHeight}px`;
           overlay.style.boxSizing = 'border-box';
           overlay.style.pointerEvents = blockInput ? 'auto' : 'none';
           overlay.style.zIndex = '2147483647';
@@ -193,9 +200,6 @@ export const overlayAnnotate = defineTool({
           const fillColor = 'rgba(255, 0, 0, 0.12)';
 
           if (shape === 'underline') {
-            overlay.style.top = `${bounds.y + bounds.height}px`;
-            overlay.style.height = `${Math.max(strokePx, 2)}px`;
-            overlay.style.width = `${bounds.width}px`;
             overlay.style.backgroundColor = strokeColor;
           } else {
             overlay.style.border = `${strokePx}px solid ${strokeColor}`;
@@ -210,7 +214,7 @@ export const overlayAnnotate = defineTool({
             labelEl.textContent = label;
             Object.assign(labelEl.style, {
               position: 'absolute',
-              bottom: shape === 'underline' ? `${overlay.offsetHeight + 6}px` : `${overlay.offsetHeight + 6}px`,
+              bottom: `${overlayHeight + 6}px`,
               left: '0',
               background: strokeColor,
               color: '#fff',
@@ -223,25 +227,57 @@ export const overlayAnnotate = defineTool({
             overlay.appendChild(labelEl);
           }
 
-          root.appendChild(overlay);
+          const updatePosition = () => {
+            const offsetLeft = documentX - window.scrollX;
+            const offsetTop = documentY - window.scrollY;
+            overlay.style.left = `${offsetLeft}px`;
+            overlay.style.top = `${offsetTop}px`;
+          };
+          updatePosition();
+
+          const handleScrollOrResize = () => {
+            if (!overlay.isConnected) {
+              window.removeEventListener('scroll', handleScrollOrResize);
+              window.removeEventListener('resize', handleScrollOrResize);
+              return;
+            }
+            updatePosition();
+          };
+          window.addEventListener('scroll', handleScrollOrResize, {passive: true});
+          window.addEventListener('resize', handleScrollOrResize);
 
           const cleanup = () => {
+            window.removeEventListener('scroll', handleScrollOrResize);
+            window.removeEventListener('resize', handleScrollOrResize);
             overlay.remove();
             if (!root || root.childElementCount === 0) {
               root?.remove();
             }
           };
+          overlay.addEventListener('mcp-overlay-remove', cleanup);
 
           if (!persist && ttlMs > 0) {
-            window.setTimeout(cleanup, ttlMs);
+            window.setTimeout(() => {
+              if (overlay.isConnected) {
+                cleanup();
+              }
+            }, ttlMs);
           }
+
+          root.appendChild(overlay);
 
           return {
             bounds: {
-              x: bounds.x,
-              y: shape === 'underline' ? bounds.y + bounds.height : bounds.y,
-              width: bounds.width,
-              height: shape === 'underline' ? Math.max(strokePx, 2) : bounds.height,
+              x: documentX - window.scrollX,
+              y: documentY - window.scrollY,
+              width: viewportWidth,
+              height: overlayHeight,
+            },
+            documentBounds: {
+              x: documentX,
+              y: documentY,
+              width: viewportWidth,
+              height: overlayHeight,
             },
           };
         },
@@ -298,24 +334,35 @@ export const overlayClear = defineTool({
       const removalResult = await page.evaluate(
         ({annotationId, clearAll}) => {
           const rootId = '__mcp_overlay_root__';
-          const root = document.getElementById(rootId);
+          const root = document.getElementById(rootId) as HTMLDivElement | null;
           if (!root) {
             return {cleared: false};
           }
 
+          const dispatchCleanup = (element: Element | null) => {
+            element?.dispatchEvent(new CustomEvent('mcp-overlay-remove'));
+          };
+
           if (clearAll || !annotationId) {
+            const overlays = Array.from(root.querySelectorAll('[data-annotation-id]'));
+            for (const overlay of overlays) {
+              dispatchCleanup(overlay);
+            }
             root.remove();
-            return {cleared: true};
+            return {cleared: overlays.length > 0};
           }
 
           const target = root.querySelector(`[data-annotation-id="${annotationId}"]`);
           if (target) {
+            dispatchCleanup(target);
             target.remove();
+            if (root.childElementCount === 0) {
+              root.remove();
+            }
+            return {cleared: true};
           }
-          if (root.childElementCount === 0) {
-            root.remove();
-          }
-          return {cleared: Boolean(target)};
+
+          return {cleared: false};
         },
         {
           annotationId: params.annotationId ?? null,
