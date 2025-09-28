@@ -105,3 +105,32 @@ New CLI options:
 - Framework-aware selectors (React, Vue components)
 - Heap snapshot capture and restoration for deeper undo
 - Advanced network mocking and traffic shaping
+## MCP Selection Extension
+
+A Chrome DevTools extension is included under `extension/` that lets a human operator push their current element selection to the MCP server.
+
+### Install
+1. Open `chrome://extensions/` and enable **Developer mode**.
+2. Click **Load unpacked** and choose the `extension/` folder from this repository.
+3. Open DevTools on the target page; a new **MCP Selection** panel appears.
+
+### Share an element with the AI
+1. In DevTools Elements panel, select the element you want the AI to know about.
+2. Switch to the **MCP Selection** panel and click **Send current selection**.
+3. The extension POSTs the selection to `http://127.0.0.1:43017/user-selection`.
+4. The AI can call the `read_user_selection` tool to inspect the most recent shared element.
+
+The MCP server automatically exposes the HTTP endpoint when it starts. You can override the port by setting the `MCP_USER_SELECTION_PORT` environment variable before launching the server.
+
+### Visual Editing Workflow
+
+The MCP Selection DevTools panel also offers a lightweight visual editor:
+
+1. Select an element in the Elements panel.
+2. Click **Enable edit overlay** and **Attach overlay to current selection**.
+3. Drag the overlay or its corner handles directly on the page to move/resize the element.
+4. Adjust colors via the color picker and **Apply color**.
+5. Press **Save edits to MCP** to persist the inline style changes; they become available through the `list_user_edits` tool.
+6. Use **Disable edit overlay** to exit editing mode.
+
+The extension sends every saved edit to `http://127.0.0.1:43017/user-edit`, where the MCP server stores a short history (last 50 edits).

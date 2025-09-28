@@ -23,7 +23,7 @@ import {NetworkCollector, PageCollector} from './PageCollector.js';
 import {listPages} from './tools/pages.js';
 import {CLOSE_PAGE_ERROR} from './tools/ToolDefinition.js';
 import type {Context} from './tools/ToolDefinition.js';
-import type {TraceResult} from './tools/ToolDefinition.js';
+import type {TraceResult, UserSelection, UserEdit} from './tools/ToolDefinition.js';
 import {WaitForHelper} from './WaitForHelper.js';
 
 export interface TextSnapshotNode extends SerializedAXNode {
@@ -76,6 +76,8 @@ export class McpContext implements Context {
 
   #nextSnapshotId = 1;
   #traceResults: TraceResult[] = [];
+  #lastUserSelection: UserSelection | null = null;
+  #userEdits: UserEdit[] = [];
 
   private constructor(browser: Browser, logger: Debugger) {
     this.browser = browser;
@@ -124,6 +126,25 @@ export class McpContext implements Context {
   getConsoleData(): Array<ConsoleMessage | Error> {
     const page = this.getSelectedPage();
     return this.#consoleCollector.getData(page);
+  }
+
+  storeUserSelection(selection: UserSelection): void {
+    this.#lastUserSelection = selection;
+  }
+
+  getLastUserSelection(): UserSelection | null {
+    return this.#lastUserSelection;
+  }
+
+  recordUserEdit(edit: UserEdit): void {
+    this.#userEdits.push(edit);
+    if (this.#userEdits.length > 50) {
+      this.#userEdits.splice(0, this.#userEdits.length - 50);
+    }
+  }
+
+  getUserEdits(): UserEdit[] {
+    return [...this.#userEdits];
   }
 
   async newPage(): Promise<Page> {

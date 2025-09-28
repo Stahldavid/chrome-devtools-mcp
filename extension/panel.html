@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MCP Selection & Editor</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 12px;
+        color: #202124;
+      }
+      h2 {
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 16px 0 6px;
+      }
+      button, input[type="color"] {
+        appearance: none;
+        border-radius: 4px;
+        border: 1px solid #dadce0;
+        background: #f8f9fa;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-right: 6px;
+      }
+      button.primary {
+        background: #1a73e8;
+        color: white;
+        border-color: #1a73e8;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #status {
+        margin-top: 8px;
+        font-size: 12px;
+        min-height: 16px;
+      }
+      textarea {
+        width: 100%;
+        height: 140px;
+        margin-top: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        font-size: 11px;
+        color: #202124;
+      }
+      .row {
+        margin-bottom: 6px;
+      }
+      label.inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>MCP Selection & Editor</h2>
+    <p>Select an element in the Elements panel, then use the controls below to share or adjust it.</p>
+
+    <h3>Share Selection</h3>
+    <div class="row">
+      <button id="share" class="primary">Share current selection</button>
+    </div>
+
+    <h3>Visual Editing</h3>
+    <div class="row">
+      <button id="enable-edit">Enable edit overlay</button>
+      <button id="disable-edit">Disable edit overlay</button>
+      <button id="attach-selection">Attach overlay to current selection</button>
+    </div>
+    <div class="row">
+      <label class="inline" for="color-picker">Background color:</label>
+      <input type="color" id="color-picker" value="#ffeb3b" />
+      <button id="apply-color">Apply color</button>
+    </div>
+    <div class="row">
+      <button id="save-edits" class="primary">Save edits to MCP</button>
+    </div>
+
+    <div id="status"></div>
+    <textarea id="preview" readonly placeholder="Selection and edit preview will appear here..."></textarea>
+
+    <script src="panel.js"></script>
+  </body>
+</html>

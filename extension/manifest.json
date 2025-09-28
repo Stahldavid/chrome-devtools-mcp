@@ -1,0 +1,22 @@
+{
+  "name": "Chrome DevTools MCP Selection",
+  "description": "Share DevTools element selections with the chrome-devtools-mcp server.",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "devtools_page": "devtools.html",
+  "icons": {
+    "128": "icons/icon128.png",
+    "16": "icons/icon128.png",
+    "48": "icons/icon128.png"
+  },
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_title": "MCP Selection",
+    "default_icon": {
+      "16": "icons/icon128.png",
+      "32": "icons/icon128.png"
+    }
+  }
+}

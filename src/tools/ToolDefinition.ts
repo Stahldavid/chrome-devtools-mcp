@@ -11,6 +11,38 @@ import type {TraceResult as TraceParseResult} from '../trace-processing/parse.js
 
 export type TraceResult = TraceParseResult;
 
+export interface UserSelection {
+  capturedAt: number;
+  pageUrl: string;
+  source: 'extension';
+  cssPath?: string | null;
+  tagName?: string | null;
+  textContent?: string | null;
+  innerText?: string | null;
+  outerHTML?: string | null;
+  attributes?: Record<string, string>;
+  dataset?: Record<string, string>;
+  boundingClientRect?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+  } | null;
+}
+
+export interface UserEdit {
+  capturedAt: number;
+  pageUrl: string;
+  cssPath: string;
+  tagName?: string | null;
+  styles: Record<string, string>;
+  summary?: string;
+}
+
 import type {ToolCategories} from './categories.js';
 
 export interface ToolDefinition<Schema extends z.ZodRawShape = z.ZodRawShape> {
@@ -81,6 +113,10 @@ export type Context = Readonly<{
   getNetworkRequests(): any[];
   getConsoleData(): any[];
   getTextSnapshot(): any;
+  storeUserSelection(selection: UserSelection): void;
+  getLastUserSelection(): UserSelection | null;
+  recordUserEdit(edit: UserEdit): void;
+  getUserEdits(): UserEdit[];
 }>;
 
 export function defineTool<Schema extends z.ZodRawShape>(

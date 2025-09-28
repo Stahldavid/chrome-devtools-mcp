@@ -20,6 +20,7 @@ import {logger, saveLogsToFile} from './logger.js';
 import {McpContext} from './McpContext.js';
 import {McpResponse} from './McpResponse.js';
 import {Mutex} from './Mutex.js';
+import {startUserSelectionServer} from './userSelectionServer.js';
 import * as consoleTools from './tools/console.js';
 import * as determinismTools from './tools/determinism.js';
 import * as emulationTools from './tools/emulation.js';
@@ -34,6 +35,8 @@ import * as screenshotTools from './tools/screenshot.js';
 import * as scriptTools from './tools/script.js';
 import * as semanticTools from './tools/semantic.js';
 import * as snapshotTools from './tools/snapshot.js';
+import * as userSelectionTools from './tools/user-selection.js';
+import * as userEditTools from './tools/user-edits.js';
 import type {ToolDefinition} from './tools/ToolDefinition.js';
 
 function readPackageJson(): {version?: string} {
@@ -144,6 +147,8 @@ function registerTool(tool: ToolDefinition): void {
   );
 }
 
+startUserSelectionServer(() => getContext());
+
 const tools = [
   ...Object.values(consoleTools),
   ...Object.values(determinismTools),
@@ -159,6 +164,8 @@ const tools = [
   ...Object.values(scriptTools),
   ...Object.values(semanticTools),
   ...Object.values(snapshotTools),
+  ...Object.values(userSelectionTools),
+  ...Object.values(userEditTools),
 ];
 for (const tool of tools) {
   registerTool(tool as unknown as ToolDefinition);
